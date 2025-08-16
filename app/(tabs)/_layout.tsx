@@ -4,7 +4,13 @@ import { Tabs } from 'expo-router'
 import React from 'react'
 import { Image, ImageBackground, Text, View } from 'react-native'
 
-const TabIcon = ({ focused, icon, title }) => {
+type TabIconProps = {
+  focused: boolean;
+  icon: any;
+  title: string;
+};
+
+const TabIcon = ({ focused, icon, title }: TabIconProps) => {
 
   if (focused) {
     return (
