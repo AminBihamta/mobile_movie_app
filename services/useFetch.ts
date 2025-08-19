@@ -1,40 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
-    const [data, setData] = useState<T | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
+export default function useFetch<T>(fetchFunction: () => Promise<T>, autoFetch = true) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const mountedRef = useRef(true);
 
-
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const result = await fetchFunction();
-
-            setData(result);
-        } catch(err) {
-            // @ts-ignore
-            setError(err instanceof Error ? err : new Error("An unexpected error occurred"));
-        } finally {
-            setLoading(false);
-        }
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchFunction();
+      if (mountedRef.current) setData(result);
+    } catch (e: any) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === "string"
+          ? e
+          : "Unknown error";
+      if (mountedRef.current) setError(new Error(msg));
+      console.log("useFetch error:", e);
+    } finally {
+      if (mountedRef.current) setLoading(false);
     }
+  };
 
-    const reset = () => {
-        setData(null);
-        setLoading(false);
-        setError(null);
-    }
+  const reset = () => {
+    if (!mountedRef.current) return;
+    setData(null);
+    setError(null);
+    setLoading(false);
+  };
 
-    useEffect(() => {
-       if(autoFetch) {
-        fetchData();
-       }
-    }, []);
+  useEffect(() => {
+    if (autoFetch) fetchData();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    return { data, loading, error, refetch: fetchData, reset};
+  return { data, loading, error, refetch: fetchData, reset };
 }
-
-export default useFetch;
